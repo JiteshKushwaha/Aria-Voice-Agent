@@ -60,3 +60,5 @@ main().catch((error) => {
   console.error("TEST FAILED:", error);
   process.exit(1);
 });
+
+export {};
