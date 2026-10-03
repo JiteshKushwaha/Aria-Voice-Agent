@@ -8,7 +8,7 @@ A browser voice agent for a fictional premium Indian skincare brand. Customers c
 
 Aura Voice Agent is designed as a modular browser-based voice support system. The application runs as a single Next.js project on Vercel, while the browser handles microphone input, speech recognition, audio playback, and the user interface.
 
-```
+```mermaid
 graph TD
     Client["Browser (client)<br/>Mic + speakers · React UI · Web Speech API (STT) · MediaRecorder"]
     API["Vercel serverless functions (Node runtime)<br/>/api/chat · /api/tts · /api/summary · /api/admin/*"]
@@ -22,18 +22,6 @@ graph TD
     API --> TTS
     API --> DB
 ```
-graph TD
-    Client["Browser (client)<br/>Mic + speakers · React UI · Web Speech API (STT) · MediaRecorder"]
-    API["Vercel serverless functions (Node runtime)<br/>/api/chat · /api/tts · /api/summary · /api/admin/*"]
-    
-    LLM["Groq LLM<br/>openai/gpt-oss-20b"]
-    TTS["Azure/Edge TTS<br/>en-IN-NeerjaNeural"]
-    DB["Neon Postgres<br/>calls + recordings"]
-
-    Client -->|fetch /api/chat, /api/tts, /api/summary| API
-    API --> LLM
-    API --> TTS
-    API --> DB
     
 ### Conversation States
 ```
