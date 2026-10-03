@@ -9,18 +9,35 @@ A browser voice agent for a fictional premium Indian skincare brand. Customers c
 Aura Voice Agent is designed as a modular browser-based voice support system. The application runs as a single Next.js project on Vercel, while the browser handles microphone input, speech recognition, audio playback, and the user interface.
 
 ```
+graph TD
+    Client["Browser (client)<br/>Mic + speakers · React UI · Web Speech API (STT) · MediaRecorder"]
+    API["Vercel serverless functions (Node runtime)<br/>/api/chat · /api/tts · /api/summary · /api/admin/*"]
+    
+    LLM["Groq LLM<br/>openai/gpt-oss-20b"]
+    TTS["Azure/Edge TTS<br/>en-IN-NeerjaNeural"]
+    DB["Neon Postgres<br/>calls + recordings"]
+
+    Client -->|fetch /api/chat, /api/tts, /api/summary| API
+    API --> LLM
+    API --> TTS
+    API --> DB
 ```
+graph TD
+    Client["Browser (client)<br/>Mic + speakers · React UI · Web Speech API (STT) · MediaRecorder"]
+    API["Vercel serverless functions (Node runtime)<br/>/api/chat · /api/tts · /api/summary · /api/admin/*"]
+    
+    LLM["Groq LLM<br/>openai/gpt-oss-20b"]
+    TTS["Azure/Edge TTS<br/>en-IN-NeerjaNeural"]
+    DB["Neon Postgres<br/>calls + recordings"]
+
+    Client -->|fetch /api/chat, /api/tts, /api/summary| API
+    API --> LLM
+    API --> TTS
+    API --> DB
+    
 ### Conversation States
 ```
-Idle
-  ↓
-Listening
-  ↓
-Thinking
-  ↓
-Speaking
-  ↓
-Listening
+
 ```
 ## Stack rationale
 Next.js on Vercel gives HTTPS (needed for the mic), serverless routes and free hosting in one place. Browser STT costs nothing and has low latency in Chrome. Groq's free Llama 3.3 70B is fast and supports tool calling. `msedge-tts` gives a free neural `en-IN-NeerjaNeural` voice, with Azure F0 as an official upgrade. Neon Postgres has a free tier and an HTTP driver that suits serverless functions.
