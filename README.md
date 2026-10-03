@@ -1,6 +1,8 @@
 # Aria : Aura Skincare Voice Support Agent
 A browser voice agent for a fictional premium Indian skincare brand. Customers click **Start call**, speak, and hear Aria reply in a natural Indian-English neural voice. She answers policy questions, looks up and cancels orders through tool calling, and never promises anything outside policy. Each call's transcript, tool calls, structured outcome and mixed audio recording are stored for admins at `/admin`.
 
+## [DEMO LINK]([url](https://drive.google.com/file/d/17ziUuK9q9-oqwjH37qB0LNJOWHMvPLJZ/view?usp=sharing))
+
 ## Architecture
 ```
 Browser (Chrome/Edge)
@@ -68,11 +70,3 @@ npm test && npm run typecheck && npm run build
 
 ## Approach note
 I kept policy logic deterministic in code and used the LLM only for language and intent, so Aria can sound natural without being able to promise anything off-policy. The pipeline runs entirely in the browser plus three serverless routes. Each piece (LLM, TTS and storage) has a free default and a fallback.
-
-## Demo video script (about 4 minutes)
-1. (0:00) Open the Vercel URL. Show the minimal page, the test orders and the recording notice. Click Start call and allow the mic. Aria greets; point out the waveform and the speaking animation.
-2. (0:40) Say "Where is my order one oh one?" Show the state chips moving Listening → Thinking → Speaking. Aria says it's out for delivery with BlueDart, by 6 PM today.
-3. (1:20) Policy: "I bought this 20 days ago and opened it, can I return it?" She refuses politely. Then "Cancel ORD-103" → she asks for confirmation → "Yes" → the status pill turns to Cancelled.
-4. (2:10) Say "Book me a flight to Goa" to show the scope refusal, then end the call.
-5. (2:40) Open /admin, sign in, select the call: play the recording, scroll the transcript and tool rows, copy the JSON.
-6. (3:20) Architecture: show the diagram, `lib/orders.ts` (policy in code), the chat tool loop, and the TTS fallback chain.
