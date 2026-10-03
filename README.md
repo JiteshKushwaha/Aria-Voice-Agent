@@ -5,69 +5,19 @@ A browser voice agent for a fictional premium Indian skincare brand. Customers c
 ## [DEMO LINK](https://drive.google.com/file/d/17ziUuK9q9-oqwjH37qB0LNJOWHMvPLJZ/view?usp=sharing)
 
 ## Architecture
-
-Aura Voice Agent is designed as a modular browser-based voice support system. The application runs as a single Next.js project on Vercel, while the browser handles microphone input, speech recognition, audio playback, and the user interface.
-
-```mermaid
-flowchart TB
-
-    U["Customer"]
-
-    subgraph CLIENT["Browser Client"]
-        UI["React / Next.js UI"]
-        STT["Web Speech API<br/>Speech Recognition<br/>en-IN"]
-        AUDIO["Audio Playback<br/>Browser Speakers"]
-        REC["MediaRecorder<br/>Optional Call Recording"]
-    end
-
-    subgraph VERCEL["Vercel Serverless Backend"]
-        CHAT["/api/chat"]
-        TTS["/api/tts"]
-        SUMMARY["/api/summary"]
-        ADMIN["/api/admin/*"]
-    end
-
-    subgraph AI["AI Services"]
-        LLM["Groq LLM<br/>OpenAI-Compatible API"]
-        VOICE["Azure / Edge TTS<br/>en-IN-NeerjaNeural"]
-        FALLBACK["Browser speechSynthesis<br/>en-IN Fallback"]
-    end
-
-    subgraph CORE["Application Logic"]
-        PROMPT["Aura Support Rules<br/>System Prompt"]
-        ORDERS["Order & Policy Logic"]
-        TOOLS["Tool Calling<br/>get_order_details<br/>cancel_order"]
-    end
-
-    subgraph DATA["Storage"]
-        DB["Neon Postgres<br/>Calls + Recordings"]
-        MEMORY["In-Memory Store<br/>Development Fallback"]
-    end
-
-    U --> UI
-    UI --> STT
-    STT --> CHAT
-
-    CHAT --> PROMPT
-    CHAT --> LLM
-
-    LLM --> TOOLS
-    TOOLS --> ORDERS
-    ORDERS --> CHAT
-
-    CHAT --> TTS
-    TTS --> VOICE
-    TTS -. failure .-> FALLBACK
-
-    VOICE --> AUDIO
-    FALLBACK --> AUDIO
-
-    UI --> REC
-    UI --> SUMMARY
-    SUMMARY --> DB
-    SUMMARY -. fallback .-> MEMORY
-
-    ADMIN --> DB
+```
+Browser (Chrome/Edge)
+  Mic ─┬─ Web Speech API (en-IN) ─ debounce endpointing ─ unclear gate ─┐
+       └─ AudioContext mix ─ analyser (waveform) + MediaRecorder        │
+                                                                        ▼
+                         POST /api/chat ── LLM (Groq, OpenAI-compatible) ⇄ tools
+                                              get_order_details / cancel_order
+                                              (lib/orders.ts policy engine)
+  reply → splitSentences → parallel POST /api/tts (Azure? → msedge-tts) → ordered playback
+                                              └─ 502 → speechSynthesis en-IN
+  End call → POST /api/summary (JSON outcome + save) → PUT /api/calls/:id/recording
+Admin: /admin (password) → /api/admin/calls[/id[/recording]] → Postgres (Neon) or in-memory
+```
 
 ## Stack rationale
 Next.js on Vercel gives HTTPS (needed for the mic), serverless routes and free hosting in one place. Browser STT costs nothing and has low latency in Chrome. Groq's free Llama 3.3 70B is fast and supports tool calling. `msedge-tts` gives a free neural `en-IN-NeerjaNeural` voice, with Azure F0 as an official upgrade. Neon Postgres has a free tier and an HTTP driver that suits serverless functions.
@@ -101,9 +51,9 @@ npm test && npm run typecheck && npm run build
 | ADMIN_SESSION_SECRET | no | Cookie signing secret |
 
 ## Known limitations (honest)
-- STT relies on Chrome/Edge's Web Speech API, which sends audio to the browser vendor's servers and does not work in Firefox. Brave & Safari support is partial.
+- STT relies on Chrome/Edge's Web Speech API, which sends audio to the browser vendor's servers and does not work in Firefox. Safari support is partial.
 - `msedge-tts` uses an unofficial Microsoft endpoint that can change or rate-limit. That is why Azure and browser fallbacks exist.
-- Turns that use the browser fallback voice are not captured in recordings. This works well on the local-host setup project, needs to resolve this issue asap.
+- Turns that use the browser fallback voice are not captured in recordings.
 - Without DATABASE_URL, stored calls disappear on cold starts and are not shared across instances. Rate limiting is per instance.
 - Recordings are capped at about 4 MB (Vercel body limit) and stored as base64 in Postgres. Fine for a demo, not for scale.
 - No latency numbers have been measured; speed depends on Groq, the TTS endpoint and the network.
