@@ -87,15 +87,15 @@ flowchart TD
     classDef llm fill:#FFF3E0,stroke:#E65100,stroke-width:1.5px,color:#BF360C
     classDef output fill:#FBE9E7,stroke:#D84315,stroke-width:1.5px,color:#BF360C
 
-    A["Customer"]:::input --> B["&quot;Where is my order Order ID 101?&quot;"]:::input
+    A["Customer"]:::input --> B['"Where is my order ORD-101?"']:::input
     B --> C["Speech-to-Text"]:::input
     C --> D["/api/chat"]:::api
     D --> E["LLM identifies ORDER_TRACKING"]:::llm
-    E --> F["get_order_details(&quot;ORD-101&quot;)"]:::llm
+    E --> F['get_order_details("ORD-101")']:::llm
     F --> G["Order result returned"]:::llm
     G --> H["Aria generates response"]:::llm
     H --> I["/api/tts"]:::api
-    I --> J["Customer hears:<br/>&quot;ORD-101 is out for delivery through BlueDart.<br/>It's expected by 6 PM today.&quot;"]:::output
+    I --> J['Customer hears:<br/>"ORD-101 is out for delivery through BlueDart.<br/>It is expected by 6 PM today."']:::output
 ```
 
 ## Stack rationale
