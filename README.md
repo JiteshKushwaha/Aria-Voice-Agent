@@ -10,12 +10,19 @@ Aura Voice Agent is designed as a modular browser-based voice support system. Th
 
 ```mermaid
 graph TD
-    Client["Browser (client)<br/>Mic + speakers · React UI · Web Speech API (STT) · MediaRecorder"]
-    API["Vercel serverless functions (Node runtime)<br/>/api/chat · /api/tts · /api/summary · /api/admin/*"]
+    %% Custom styles
+    classDef client fill:#E8F5E9,stroke:#2E7D32,stroke-width:1.5px,color:#1B5E20
+    classDef api fill:#EDE7F6,stroke:#512DA8,stroke-width:1.5px,color:#311B92
+    classDef llm fill:#FFF3E0,stroke:#E65100,stroke-width:1.5px,color:#BF360C
+    classDef tts fill:#FBE9E7,stroke:#D84315,stroke-width:1.5px,color:#BF360C
+    classDef db fill:#E1F5FE,stroke:#0277BD,stroke-width:1.5px,color:#01579B
+
+    Client["Browser (client)<br/>Mic + speakers · React UI · Web Speech API (STT) · MediaRecorder"]:::client
+    API["Vercel serverless functions (Node runtime)<br/>/api/chat · /api/tts · /api/summary · /api/admin/*"]:::API
     
-    LLM["Groq LLM<br/>openai/gpt-oss-20b"]
-    TTS["Azure/Edge TTS<br/>en-IN-NeerjaNeural"]
-    DB["Neon Postgres<br/>calls + recordings"]
+    LLM["Groq LLM<br/>openai/gpt-oss-20b"]:::llm
+    TTS["Azure/Edge TTS<br/>en-IN-NeerjaNeural"]:::tts
+    DB["Neon Postgres<br/>calls + recordings"]:::db
 
     Client -->|fetch /api/chat, /api/tts, /api/summary| API
     API --> LLM
