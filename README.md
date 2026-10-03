@@ -5,19 +5,69 @@ A browser voice agent for a fictional premium Indian skincare brand. Customers c
 ## [DEMO LINK](https://drive.google.com/file/d/17ziUuK9q9-oqwjH37qB0LNJOWHMvPLJZ/view?usp=sharing)
 
 ## Architecture
-```
-Browser (Chrome/Edge)
-  Mic ─┬─ Web Speech API (en-IN) ─ debounce endpointing ─ unclear gate ─┐
-       └─ AudioContext mix ─ analyser (waveform) + MediaRecorder        │
-                                                                        ▼
-                         POST /api/chat ── LLM (Groq, OpenAI-compatible) ⇄ tools
-                                              get_order_details / cancel_order
-                                              (lib/orders.ts policy engine)
-  reply → splitSentences → parallel POST /api/tts (Azure? → msedge-tts) → ordered playback
-                                              └─ 502 → speechSynthesis en-IN
-  End call → POST /api/summary (JSON outcome + save) → PUT /api/calls/:id/recording
-Admin: /admin (password) → /api/admin/calls[/id[/recording]] → Postgres (Neon) or in-memory
-```
+
+Aura Voice Agent is designed as a modular browser-based voice support system. The application runs as a single Next.js project on Vercel, while the browser handles microphone input, speech recognition, audio playback, and the user interface.
+
+```mermaid
+flowchart TB
+
+    U["Customer"]
+
+    subgraph CLIENT["Browser Client"]
+        UI["React / Next.js UI"]
+        STT["Web Speech API<br/>Speech Recognition<br/>en-IN"]
+        AUDIO["Audio Playback<br/>Browser Speakers"]
+        REC["MediaRecorder<br/>Optional Call Recording"]
+    end
+
+    subgraph VERCEL["Vercel Serverless Backend"]
+        CHAT["/api/chat"]
+        TTS["/api/tts"]
+        SUMMARY["/api/summary"]
+        ADMIN["/api/admin/*"]
+    end
+
+    subgraph AI["AI Services"]
+        LLM["Groq LLM<br/>OpenAI-Compatible API"]
+        VOICE["Azure / Edge TTS<br/>en-IN-NeerjaNeural"]
+        FALLBACK["Browser speechSynthesis<br/>en-IN Fallback"]
+    end
+
+    subgraph CORE["Application Logic"]
+        PROMPT["Aura Support Rules<br/>System Prompt"]
+        ORDERS["Order & Policy Logic"]
+        TOOLS["Tool Calling<br/>get_order_details<br/>cancel_order"]
+    end
+
+    subgraph DATA["Storage"]
+        DB["Neon Postgres<br/>Calls + Recordings"]
+        MEMORY["In-Memory Store<br/>Development Fallback"]
+    end
+
+    U --> UI
+    UI --> STT
+    STT --> CHAT
+
+    CHAT --> PROMPT
+    CHAT --> LLM
+
+    LLM --> TOOLS
+    TOOLS --> ORDERS
+    ORDERS --> CHAT
+
+    CHAT --> TTS
+    TTS --> VOICE
+    TTS -. failure .-> FALLBACK
+
+    VOICE --> AUDIO
+    FALLBACK --> AUDIO
+
+    UI --> REC
+    UI --> SUMMARY
+    SUMMARY --> DB
+    SUMMARY -. fallback .-> MEMORY
+
+    ADMIN --> DB
 
 ## Stack rationale
 Next.js on Vercel gives HTTPS (needed for the mic), serverless routes and free hosting in one place. Browser STT costs nothing and has low latency in Chrome. Groq's free Llama 3.3 70B is fast and supports tool calling. `msedge-tts` gives a free neural `en-IN-NeerjaNeural` voice, with Azure F0 as an official upgrade. Neon Postgres has a free tier and an HTTP driver that suits serverless functions.
@@ -51,9 +101,9 @@ npm test && npm run typecheck && npm run build
 | ADMIN_SESSION_SECRET | no | Cookie signing secret |
 
 ## Known limitations (honest)
-- STT relies on Chrome/Edge's Web Speech API, which sends audio to the browser vendor's servers and does not work in Firefox. Safari support is partial.
+- STT relies on Chrome/Edge's Web Speech API, which sends audio to the browser vendor's servers and does not work in Firefox. Brave & Safari support is partial.
 - `msedge-tts` uses an unofficial Microsoft endpoint that can change or rate-limit. That is why Azure and browser fallbacks exist.
-- Turns that use the browser fallback voice are not captured in recordings.
+- Turns that use the browser fallback voice are not captured in recordings. This works well on the local-host setup project, needs to resolve this issue asap.
 - Without DATABASE_URL, stored calls disappear on cold starts and are not shared across instances. Rate limiting is per instance.
 - Recordings are capped at about 4 MB (Vercel body limit) and stored as base64 in Postgres. Fine for a demo, not for scale.
 - No latency numbers have been measured; speed depends on Groq, the TTS endpoint and the network.
@@ -61,13 +111,13 @@ npm test && npm run typecheck && npm run build
 - Aria answers honestly if asked whether she is a person (she's a virtual assistant). The UI states that calls are recorded.
 
 ## Q&A
-**1. Why this architecture and stack?** I wanted everything on free tiers with no card, deployable as one Vercel project. That ruled out a long-lived WebSocket server, so I used browser STT and request/response serverless routes, and made up for the lack of streaming with sentence-level parallel TTS. Plain `fetch` against an OpenAI-compatible API keeps the LLM swappable.
+**1. Why did you choose this architecture and technology stack?** I chose a simple modular architecture so that each part of the voice agent is easy to understand, test, and improve. The system follows a clear flow : the browser listens to the customer, the speech is converted into text, the LLM understands the request and uses the order lookup tool when needed, and the response is converted back into speech. I used Next.js because it allows the complete application to be deployed as a single project on Vercel, which keeps the setup simple and suitable for the project. I also used browser-based speech recognition and free-tier AI services to keep the project easy to deploy without requiring a separate telephony or backend server.
 
-**2. Most difficult part?** The client turn-taking state machine. Recognition restarts itself, debounce endpointing, echo avoidance, barge-in and async TTS all race each other. I fixed this by keeping all mutable state in refs and adding a generation counter: every interrupt bumps it, and stale fetches or playback check it and quietly exit.
+**2. What was the most difficult part, and how did I solve it?** The most difficult part was making the conversation feel like a natural voice interaction rather than a normal text chatbot. The main challenge was managing when the agent should listen, think, and speak without continuously hearing its own voice. I solved this by controlling the conversation through clear states such as Listening, Thinking, and Speaking. While Aria is speaking, microphone recognition is temporarily paused to reduce echo, and after she finishes, listening starts again. I also added handling for unclear speech, invalid order IDs, missing order IDs, and failed API responses so the agent can recover gracefully instead of crashing or giving made-up information.
 
-**3. One more week?** Streaming: streaming LLM tokens into streaming TTS, plus a proper VAD- or streaming-based STT (for example Deepgram or Whisper over WebRTC). Latency is what most affects how human a voice agent feels. After that, an evaluation suite that replays the edge-case matrix against the real model.
+**3. With one more week, what would I improve first, and why?** I would improve the voice experience and response speed first because these have the biggest effect on how natural the agent feels. I would move towards real-time streaming so that Aria can start speaking while the response is still being generated, instead of waiting for the complete response. I would also improve interruption handling so that customers can naturally interrupt Aria while she is speaking. After that, I would add more automated testing for the common questions, policy-related conversations, invalid orders, and unusual customer requests to make sure the behaviour stays consistent when the model or prompts are changed.
 
-**4. At 1,000 conversations a day?** Currently I am on Student Free Tier Subscription for Microsft's Azure Services, for such high conversations I would move to a paid, SLA-backed TTS and STT. I'd store recordings in object storage (Vercel Blob or S3) with signed URLs and retention policies, and use Redis/Upstash for rate limits and sessions. I'd add a real order API with customer verification before showing order data, proper admin auth with roles and audit logs, consent and DPDP-compliant retention, observability (traces per turn, tool error rates) and LLM fallback providers.
+**4. At 1,000 conversations a day, what would need to change?** Currently I am on Student Free Tier Subscription for Microsft's Azure Services, for such high conversations I would move to a paid, SLA-backed TTS and STT. At that scale, the main focus would be reliability, security, privacy, and monitoring. The current demo uses mock order data, so a production system would need to connect to a real order system and verify the customer before displaying order information. I would also move from free-tier services to reliable paid speech and AI services with higher limits and better availability. Conversation data would need proper storage, access control, retention rules, and protection of customer information. Finally, I would add monitoring for response time, failed requests, voice errors, and customer resolution so that the system can be continuously improved.
 
 ## Approach note
-I kept policy logic deterministic in code and used the LLM only for language and intent, so Aria can sound natural without being able to promise anything off-policy. The pipeline runs entirely in the browser plus three serverless routes. Each piece (LLM, TTS and storage) has a free default and a fallback.
+I built the project as a simple browser-based voice support agent with speech-to-text, an LLM for understanding customer requests, order lookup through a tool, and text-to-speech for Aria's response. I kept the Aura Skincare policies and order rules controlled by the application so that Aria can respond naturally without making promises that are not allowed. The complete system is designed to run as a single Next.js application and can be deployed directly on Vercel using free-tier services.
