@@ -28,7 +28,7 @@ graph TD
     API --> TTS
     API --> DB
 ```
-## what Happens During One Spoken Exchange ? 
+## What Happens During One Spoken Exchange ? 
 ```mermaid
 flowchart TD
     %% Custom styles
@@ -46,11 +46,58 @@ flowchart TD
     F --> G["Reply → /api/tts → speakers<br/>Splits into sentences, plays them in order"]:::output
     G -->|returns to Listening for the next turn| A
 ```
+## Overall Call Life Cycle & UI State Machine Walk Through
+```mermaid
+stateDiagram-v2
+    direction TB
+
+    %% Custom styles
+    classDef neutral fill:#F5F5F0,stroke:#8C8C7A,stroke-width:1.5px,color:#333333
+    classDef listen fill:#E8F5E9,stroke:#2E7D32,stroke-width:1.5px,color:#1B5E20
+    classDef think fill:#FFF3E0,stroke:#E65100,stroke-width:1.5px,color:#BF360C
+    classDef speak fill:#FBE9E7,stroke:#D84315,stroke-width:1.5px,color:#BF360C
+
+    Idle: Idle\nPress Start Call
+    Connecting: Connecting\nMic permission, audio setup
+    Listening: Listening\nMic open, recognizing speech
+    Thinking: Thinking\nWaiting for /api/chat reply
+    Speaking: Speaking\nPlaying Aria's voice reply
+    Ended: Ended\nSaves transcript + summary
+
+    class Idle,Connecting,Ended neutral
+    class Listening listen
+    class Thinking think
+    class Speaking speak
+
+    [*] --> Idle
+    Idle --> Connecting
+    Connecting --> Listening
+    Listening --> Thinking
+    Thinking --> Speaking
+    Speaking --> Listening : loop
+    Speaking --> Ended
+```
     
-### Conversation States
+### Example
+```mermaid
+flowchart TD
+    %% Custom styles
+    classDef input fill:#F5F5F0,stroke:#8C8C7A,stroke-width:1.5px,color:#333333
+    classDef api fill:#EDE7F6,stroke:#512DA8,stroke-width:1.5px,color:#311B92
+    classDef llm fill:#FFF3E0,stroke:#E65100,stroke-width:1.5px,color:#BF360C
+    classDef output fill:#FBE9E7,stroke:#D84315,stroke-width:1.5px,color:#BF360C
+
+    A["Customer"]:::input --> B["&quot;Where is my order ORD-101?&quot;"]:::input
+    B --> C["Speech-to-Text"]:::input
+    C --> D["/api/chat"]:::api
+    D --> E["LLM identifies ORDER_TRACKING"]:::llm
+    E --> F["get_order_details(&quot;ORD-101&quot;)"]:::llm
+    F --> G["Order result returned"]:::llm
+    G --> H["Aria generates response"]:::llm
+    H --> I["/api/tts"]:::api
+    I --> J["Customer hears:<br/>&quot;ORD-101 is out for delivery through BlueDart.<br/>It's expected by 6 PM today.&quot;"]:::output
 ```
 
-```
 ## Stack rationale
 Next.js on Vercel gives HTTPS (needed for the mic), serverless routes and free hosting in one place. Browser STT costs nothing and has low latency in Chrome. Groq's free Llama 3.3 70B is fast and supports tool calling. `msedge-tts` gives a free neural `en-IN-NeerjaNeural` voice, with Azure F0 as an official upgrade. Neon Postgres has a free tier and an HTTP driver that suits serverless functions.
 
