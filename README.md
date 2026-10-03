@@ -1,4 +1,4 @@
-# Aria — Aura Skincare Voice Support (browser + Vercel)
+# Aria : Aura Skincare Voice Support Agent
 A browser voice agent for a fictional premium Indian skincare brand. Customers click **Start call**, speak, and hear Aria reply in a natural Indian-English neural voice. She answers policy questions, looks up and cancels orders through tool calling, and never promises anything outside policy. Each call's transcript, tool calls, structured outcome and mixed audio recording are stored for admins at `/admin`.
 
 ## Architecture
