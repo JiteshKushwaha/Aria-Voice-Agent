@@ -6,7 +6,6 @@ A browser voice agent for a fictional premium Indian skincare brand. Customers c
 
 ## Architecture
 
-Aura Voice Agent is designed as a modular browser-based voice support system. The application runs as a single Next.js project on Vercel, while the browser handles microphone input, speech recognition, audio playback, and the user interface.
 
 ```mermaid
 graph TD
@@ -28,6 +27,24 @@ graph TD
     API --> LLM
     API --> TTS
     API --> DB
+```
+## what Happens During One Spoken Exchange ? 
+```mermaid
+flowchart TD
+    %% Custom styles
+    classDef input fill:#F5F5F0,stroke:#8C8C7A,stroke-width:1.5px,color:#333333
+    classDef check fill:#FFFDE7,stroke:#FBC02D,stroke-width:1.5px,color:#F57F17
+    classDef api fill:#EDE7F6,stroke:#512DA8,stroke-width:1.5px,color:#311B92
+    classDef tool fill:#FFF3E0,stroke:#E65100,stroke-width:1.5px,color:#BF360C
+    classDef output fill:#FBE9E7,stroke:#D84315,stroke-width:1.5px,color:#BF360C
+
+    A["Customer speaks<br/>Web Speech API (en-IN) returns interim + final text"]:::input --> B["Turn detection<br/>Silence pause ends the turn (900ms / 1700ms)"]:::input
+    B --> C{"Clear enough?<br/>Length ≥2 and confidence ≥0.3"}:::check
+    C -- no --> D["Ask again<br/>No LLM call"]:::input
+    C -- yes --> E["/api/chat (tool loop)<br/>System prompt + Groq LLM, tools enabled"]:::api
+    E --> F["Runs a tool if needed<br/>get_order_details / cancel_order"]:::tool
+    F --> G["Reply → /api/tts → speakers<br/>Splits into sentences, plays them in order"]:::output
+    G -->|returns to Listening for the next turn| A
 ```
     
 ### Conversation States
