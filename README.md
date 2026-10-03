@@ -40,10 +40,10 @@ npm test && npm run typecheck && npm run build
 | Var | Required | Purpose |
 |---|---|---|
 | LLM_API_KEY | yes | Groq (or other OpenAI-compatible) key |
-| LLM_BASE_URL / LLM_MODEL | no | Defaults to Groq + llama-3.3-70b-versatile |
+| LLM_BASE_URL / LLM_MODEL | yes | Defaults to Groq + llama-3.3-70b-versatile |
 | TTS_VOICE | no | Default en-IN-NeerjaNeural |
-| AZURE_SPEECH_KEY / AZURE_SPEECH_REGION | no | Official Azure TTS tried first |
-| DATABASE_URL | no | Postgres for persistent calls; otherwise in-memory |
+| AZURE_SPEECH_KEY / AZURE_SPEECH_REGION | yes | Official Azure TTS tried first |
+| DATABASE_URL | yes | Postgres for persistent calls; otherwise in-memory |
 | ADMIN_PASSWORD | no | Enables /admin |
 | ADMIN_SESSION_SECRET | no | Cookie signing secret |
 
@@ -64,7 +64,7 @@ npm test && npm run typecheck && npm run build
 
 **3. One more week?** Streaming: streaming LLM tokens into streaming TTS, plus a proper VAD- or streaming-based STT (for example Deepgram or Whisper over WebRTC). Latency is what most affects how human a voice agent feels. After that, an evaluation suite that replays the edge-case matrix against the real model.
 
-**4. At 1,000 conversations a day?** I would move to a paid, SLA-backed TTS and STT. I'd store recordings in object storage (Vercel Blob or S3) with signed URLs and retention policies, and use Redis/Upstash for rate limits and sessions. I'd add a real order API with customer verification before showing order data, proper admin auth with roles and audit logs, consent and DPDP-compliant retention, observability (traces per turn, tool error rates) and LLM fallback providers.
+**4. At 1,000 conversations a day?** Currently I am on Student Free Tier Subscription for Microsft's Azure Services, for such high conversations I would move to a paid, SLA-backed TTS and STT. I'd store recordings in object storage (Vercel Blob or S3) with signed URLs and retention policies, and use Redis/Upstash for rate limits and sessions. I'd add a real order API with customer verification before showing order data, proper admin auth with roles and audit logs, consent and DPDP-compliant retention, observability (traces per turn, tool error rates) and LLM fallback providers.
 
 ## Approach note
 I kept policy logic deterministic in code and used the LLM only for language and intent, so Aria can sound natural without being able to promise anything off-policy. The pipeline runs entirely in the browser plus three serverless routes. Each piece (LLM, TTS and storage) has a free default and a fallback.
