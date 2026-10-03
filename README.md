@@ -87,7 +87,7 @@ flowchart TD
     classDef llm fill:#FFF3E0,stroke:#E65100,stroke-width:1.5px,color:#BF360C
     classDef output fill:#FBE9E7,stroke:#D84315,stroke-width:1.5px,color:#BF360C
 
-    A["Customer"]:::input --> B["&quot;Where is my order ORD-101?&quot;"]:::input
+    A["Customer"]:::input --> B["&quot;Where is my order Order ID 101?&quot;"]:::input
     B --> C["Speech-to-Text"]:::input
     C --> D["/api/chat"]:::api
     D --> E["LLM identifies ORDER_TRACKING"]:::llm
